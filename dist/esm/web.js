@@ -7,7 +7,6 @@ export class WAVRecorderWeb extends WebPlugin {
         this.number_of_channels = 1;
         this.sample_rate = 8000;
         this.buffer_size = 1024;
-        this.base_path = "dictations";
         this.recorded = [];
         this.recording = -1;
         this.current_file = '';
@@ -32,7 +31,7 @@ export class WAVRecorderWeb extends WebPlugin {
     }
     async startRecord(settings) {
         console.log(settings);
-        this.current_file = this.base_path + "/" + settings.path;
+        this.current_file = settings.path;
         try {
             await Filesystem.deleteFile({ path: this.current_file, directory: Directory.Data });
         }
@@ -54,15 +53,7 @@ export class WAVRecorderWeb extends WebPlugin {
             }
             const audio_data = this._encode(this._interleave(channels));
             this.recorded.push(audio_data);
-            const data = this._multiUint8ArrayToString(this.recorded);
             this.notifyListeners('recordingBuffer', audio_data);
-            await Filesystem.writeFile({
-                path: this.current_file,
-                data: data,
-                directory: Directory.Data,
-                encoding: Encoding.UTF16,
-                recursive: true,
-            });
             if (this.recording === 0) {
                 this.recording = -1;
             }
@@ -74,10 +65,20 @@ export class WAVRecorderWeb extends WebPlugin {
         return { value: true };
     }
     async stopRecord() {
-        var _a;
+        var _a, _b;
         // this.recording = 0;
         // this.recorder?.stop();
-        (_a = this.stream) === null || _a === void 0 ? void 0 : _a.getTracks()[0].stop();
+        (_a = this.context) === null || _a === void 0 ? void 0 : _a.close();
+        (_b = this.stream) === null || _b === void 0 ? void 0 : _b.getTracks()[0].stop();
+        const data = this._multiUint8ArrayToString(this.recorded);
+        this.recorded = [];
+        await Filesystem.writeFile({
+            path: this.current_file,
+            data: data,
+            directory: Directory.Data,
+            encoding: Encoding.UTF16,
+            recursive: true,
+        });
         return { value: true };
     }
     _encode(buffer) {
