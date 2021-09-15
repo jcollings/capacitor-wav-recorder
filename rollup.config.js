@@ -7,6 +7,7 @@ export default {
       name: 'capacitorWAVRecorder',
       globals: {
         '@capacitor/core': 'capacitorExports',
+        '@capacitor/filesystem': 'capacitorFilesystem'
       },
       sourcemap: true,
       inlineDynamicImports: true,
@@ -18,5 +19,5 @@ export default {
       inlineDynamicImports: true,
     },
   ],
-  external: ['@capacitor/core'],
+  external: ['@capacitor/core', '@capacitor/filesystem'],
 };
