@@ -9,7 +9,6 @@ export class WAVRecorderWeb extends WebPlugin implements WAVRecorderPlugin {
   number_of_channels: number = 1;
   sample_rate: number = 8000;
   buffer_size: number = 1024;
-  recorded: any[] = [];
 
   stream: MediaStream | undefined;
   context: AudioContext | undefined;
@@ -77,37 +76,40 @@ export class WAVRecorderWeb extends WebPlugin implements WAVRecorderPlugin {
       }
 
       const audio_data = this._encode(this._interleave(channels));
-      this.recorded.push(audio_data);
       this.notifyListeners('recordingBuffer', audio_data);
+
+      const data = this._multiUint8ArrayToString([audio_data]);
+      await Filesystem.appendFile({
+        path: this.current_file,
+        data: data,
+        directory: Directory.Data,
+        encoding: Encoding.UTF16,
+      })
 
       if (this.recording === 0) {
         this.recording = -1;
       }
     };
 
-    input.connect(processor);
-    processor.connect(this.context.destination);
-
-    this.recording = 1;
-    // this.recorder?.start();
-    return { value: true };
-  }
-  async stopRecord(): Promise<RecordingData> {
-    // this.recording = 0;
-    // this.recorder?.stop();
-    this.context?.close();
-    this.stream?.getTracks()[0].stop()
-
-    const data = this._multiUint8ArrayToString(this.recorded);
-    this.recorded = [];
-
+    // Make sure we can write to file
     await Filesystem.writeFile({
       path: this.current_file,
-      data: data,
+      data: "",
       directory: Directory.Data,
       encoding: Encoding.UTF16,
       recursive: true,
     });
+
+    input.connect(processor);
+    processor.connect(this.context.destination);
+
+    this.recording = 1;
+    return { value: true };
+  }
+  async stopRecord(): Promise<RecordingData> {
+    this.recording = 0;
+    this.context?.close();
+    this.stream?.getTracks()[0].stop();
 
     return { value: true };
   }

@@ -5,7 +5,6 @@ export declare class WAVRecorderWeb extends WebPlugin implements WAVRecorderPlug
     number_of_channels: number;
     sample_rate: number;
     buffer_size: number;
-    recorded: any[];
     stream: MediaStream | undefined;
     context: AudioContext | undefined;
     recording: number;

@@ -7,7 +7,6 @@ export class WAVRecorderWeb extends WebPlugin {
         this.number_of_channels = 1;
         this.sample_rate = 8000;
         this.buffer_size = 1024;
-        this.recorded = [];
         this.recording = -1;
         this.current_file = '';
     }
@@ -52,33 +51,36 @@ export class WAVRecorderWeb extends WebPlugin {
                 channels.push(audioProcessingEvent.inputBuffer.getChannelData(i));
             }
             const audio_data = this._encode(this._interleave(channels));
-            this.recorded.push(audio_data);
             this.notifyListeners('recordingBuffer', audio_data);
+            const data = this._multiUint8ArrayToString([audio_data]);
+            await Filesystem.appendFile({
+                path: this.current_file,
+                data: data,
+                directory: Directory.Data,
+                encoding: Encoding.UTF16,
+            });
             if (this.recording === 0) {
                 this.recording = -1;
             }
         };
-        input.connect(processor);
-        processor.connect(this.context.destination);
-        this.recording = 1;
-        // this.recorder?.start();
-        return { value: true };
-    }
-    async stopRecord() {
-        var _a, _b;
-        // this.recording = 0;
-        // this.recorder?.stop();
-        (_a = this.context) === null || _a === void 0 ? void 0 : _a.close();
-        (_b = this.stream) === null || _b === void 0 ? void 0 : _b.getTracks()[0].stop();
-        const data = this._multiUint8ArrayToString(this.recorded);
-        this.recorded = [];
+        // Make sure we can write to file
         await Filesystem.writeFile({
             path: this.current_file,
-            data: data,
+            data: "",
             directory: Directory.Data,
             encoding: Encoding.UTF16,
             recursive: true,
         });
+        input.connect(processor);
+        processor.connect(this.context.destination);
+        this.recording = 1;
+        return { value: true };
+    }
+    async stopRecord() {
+        var _a, _b;
+        this.recording = 0;
+        (_a = this.context) === null || _a === void 0 ? void 0 : _a.close();
+        (_b = this.stream) === null || _b === void 0 ? void 0 : _b.getTracks()[0].stop();
         return { value: true };
     }
     _encode(buffer) {
